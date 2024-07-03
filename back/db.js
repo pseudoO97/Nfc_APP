@@ -1,13 +1,23 @@
-import { createConnection } from 'mysql2';
+// db.js
+const mysql = require("mysql2");
 
-const connection = createConnection('mysql://root:louHWjzobPJyuXHQcyCUdFFvuQjYOAOO@mysql.railway.internal:3306/railway');
-
-connection.connect((err) => {
-    if (err) {
-        console.error('Error connecting to the database:', err.stack);
-        return;
-    }
-    console.log('Connected to the database as id ' + connection.threadId);
+// Create a connection using the provided credentials
+const connection = mysql.createConnection({
+  host: "viaduct.proxy.rlwy.net",
+  user: "root",
+  password: "louHWjzobPJyuXHQcyCUdFFvuQjYOAOO",
+  database: "railway",
+  port: 30162,
+  connectTimeout: 10000,
 });
 
-export default connection;
+// Connect to the database
+connection.connect((err) => {
+  if (err) {
+    console.error("Error connecting to the database:", err.stack);
+    return;
+  }
+  console.log("Connected to the database as id " + connection.threadId);
+});
+
+module.exports = connection;
