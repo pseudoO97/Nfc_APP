@@ -60,7 +60,13 @@ class _ScanPageState extends State<ScanPage> {
 
           NdefMessage message = ndef.cachedMessage!;
           NdefRecord record = message.records.first;
-          String payload = utf8.decode(record.payload);
+
+          Uint8List payloadBytes = record.payload;
+
+          String payload = utf8.decode(payloadBytes);
+
+          print('Raw payload: $payload');
+
           setState(() {
             _nfcData = _parsePayload(payload);
           });
@@ -78,9 +84,14 @@ class _ScanPageState extends State<ScanPage> {
 
   String _parsePayload(String payload) {
     try {
-      String jwtPayload = payload.substring(3);
+      List<String> parts = payload.split('.');
+      if (parts.length != 3) {
+        throw FormatException('Invalid JWT format');
+      }
+
+      String payloadBase64 = parts[1];
       String decodedPayload =
-          utf8.decode(base64Url.decode(base64Url.normalize(jwtPayload)));
+          utf8.decode(base64Url.decode(base64Url.normalize(payloadBase64)));
       Map<String, dynamic> jsonPayload = jsonDecode(decodedPayload);
 
       return '''
