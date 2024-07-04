@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
+import 'package:http/http.dart' as http;
 
 class ScanPage extends StatefulWidget {
   @override
@@ -10,6 +11,7 @@ class ScanPage extends StatefulWidget {
 
 class _ScanPageState extends State<ScanPage> {
   String _nfcData = '';
+  final String baseUrl = 'http://10.13.11.150:5000';
 
   @override
   Widget build(BuildContext context) {
@@ -60,10 +62,33 @@ class _ScanPageState extends State<ScanPage> {
 
           NdefMessage message = ndef.cachedMessage!;
           NdefRecord record = message.records.first;
-          String payload = utf8.decode(record.payload);
-          setState(() {
-            _nfcData = _parsePayload(payload);
-          });
+
+          Uint8List payloadBytes = record.payload;
+
+          String payload = utf8.decode(payloadBytes);
+
+          print('Raw payload: $payload');
+
+          var response = await http.post(
+            Uri.parse('$baseUrl/send-nfc-data'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'jwt': payload}),
+          );
+
+          if (response.statusCode == 200) {
+            var responseBody = jsonDecode(response.body);
+            setState(() {
+              if (responseBody['status'] == 'success') {
+                _nfcData = 'Name: ${responseBody['data']['name']}\n'
+                    'Email: ${responseBody['data']['email']}\n'
+                    'Role: ${responseBody['data']['role']}';
+              } else {
+                _nfcData = responseBody['message'];
+              }
+            });
+          } else {
+            _showErrorDialog('Failed to retrieve data from backend');
+          }
         } else {
           _showErrorDialog('NDEF data not available on this tag');
         }
@@ -74,26 +99,6 @@ class _ScanPageState extends State<ScanPage> {
         NfcManager.instance.stopSession();
       }
     });
-  }
-
-  String _parsePayload(String payload) {
-    try {
-      String jwtPayload = payload.substring(3);
-      String decodedPayload =
-          utf8.decode(base64Url.decode(base64Url.normalize(jwtPayload)));
-      Map<String, dynamic> jsonPayload = jsonDecode(decodedPayload);
-
-      return '''
-Name: ${jsonPayload['name']}
-Email: ${jsonPayload['email']}
-iat: ${DateTime.fromMillisecondsSinceEpoch(jsonPayload['iat'] * 1000)}
-exp: ${DateTime.fromMillisecondsSinceEpoch(jsonPayload['exp'] * 1000)}
-Role: ${jsonPayload['role']}
-''';
-    } catch (e) {
-      print('Error parsing JWT payload: $e');
-      return 'Error parsing payload';
-    }
   }
 
   void _showErrorDialog(String message) {
