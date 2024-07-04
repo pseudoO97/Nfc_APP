@@ -11,7 +11,7 @@ class ScanPage extends StatefulWidget {
 
 class _ScanPageState extends State<ScanPage> {
   String _nfcData = '';
-  final String baseUrl = 'http://192.168.0.161:5000';
+  final String baseUrl = 'http://10.13.11.150:5000';
 
   @override
   Widget build(BuildContext context) {

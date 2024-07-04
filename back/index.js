@@ -11,18 +11,19 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.post("/send-nfc-data", (req, res) => {
-  const nfcData = req.body.jwt;
+  const { jwt: nfcData } = req.body;
+
   if (!nfcData) {
-    return res.status(400).send("No JWT provided");
+    return res.status(400).json({ error: "No JWT provided" });
   }
 
   try {
-    const base64Url = nfcData.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const decodedPayload = Buffer.from(base64, "base64").toString();
-    const decodedNfcData = JSON.parse(decodedPayload);
-
-    const { email } = decodedNfcData;
+    // Split the JWT into parts and decode the payload
+    const [, base64Payload] = nfcData.split(".");
+    const decodedPayload = Buffer.from(base64Payload, "base64").toString(
+      "utf-8"
+    );
+    const { email } = JSON.parse(decodedPayload);
 
     connection.query(
       "SELECT * FROM users WHERE email = ?",
@@ -30,8 +31,7 @@ app.post("/send-nfc-data", (req, res) => {
       (err, results) => {
         if (err) {
           console.error("Database query error:", err);
-          res.status(500).send("Database query error");
-          return;
+          return res.status(500).json({ error: "Database query error" });
         }
 
         if (results.length > 0) {
@@ -53,10 +53,10 @@ app.post("/send-nfc-data", (req, res) => {
     );
   } catch (err) {
     console.error("Error decoding JWT:", err);
-    res.status(500).send("Error decoding JWT");
+    res.status(500).json({ error: "Error decoding JWT" });
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+app.listen(5000, "10.13.11.150", () => {
+  console.log(`Server running on http://10.13.11.150:5000`);
 });
